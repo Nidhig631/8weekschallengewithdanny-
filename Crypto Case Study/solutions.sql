@@ -138,6 +138,42 @@ select count(*)
 from trading.prices
 where price > 30000 and ticker = 'BTC'
 
+Question 9
+How many "breakout" days were there in 2020 where the price column is greater than the open column for each ticker?
+select ticker, count(*) as breakout_days
+from 
+trading.prices
+where price > open
+and market_date >= '2020-01-01'
+and market_date <= '2020-12-31'
+group by ticker;
+
+Question 10
+How many "non_breakout" days were there in 2020 where the price column is less than the open column for each ticker?
+select ticker, count(*) as non_breakout_days
+from 
+trading.prices
+where price < open
+and market_date >= '2020-01-01'
+and market_date <= '2020-12-31'
+group by ticker;
+
+
+Question 11
+What percentage of days in 2020 were breakout days vs non-breakout days? Round the percentages to 2 decimal places
+select ticker, count(*),
+count(case when price > open then 1 
+	  else 0
+end) as breakout_percentage
+from 
+trading.prices
+where price < open
+and market_date >= '2020-01-01'
+and market_date <= '2020-12-31'
+group by ticker;
+
+
+
 
 
 
