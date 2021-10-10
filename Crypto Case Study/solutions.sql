@@ -173,13 +173,104 @@ and market_date <= '2020-12-31'
 group by ticker;
 
 
+Transactions Table
+==================
+
+txn_id	unique ID for each transaction
+member_id	member identifier for each trade
+ticker	the ticker for each trade
+txn_date	the date for each transaction
+txn_type	either BUY or SELL
+quantity	the total quantity for each trade
+percentage_fee	% of total amount charged as fees
+txn_time	the timestamp for each trade
 
 
+In our third trading.transactions database table we have each BUY or SELL transaction for a specific ticker performed by each member
+You can inspect the most recent 10 transactions by member_id = 'c4ca42' (do you remember who that is?)
+
+SELECT * FROM trading.transactions
+WHERE member_id = 'c4ca42'
+ORDER BY txn_time DESC
+LIMIT 10;
+
+Question 1
+How many records are there in the trading.transactions table?
+SELECT count(*) FROM trading.transaction;
+
+Question 2
+How many unique transactions are there?
+SELECT count(distinct txn_id) FROM trading.transaction;
 
 
+Question 3
+How many buy and sell transactions are there for Bitcoin?
+SELECT txn_type,
+count (case when txn_type='BUY' then 'BUY'
+else 'SELL'
+end) as transaction_count
+FROM trading.transaction
+where ticker='BTC'
+group by txn_type
 
 
+Question 4
+For each year, calculate the following buy and sell metrics for Bitcoin:
 
+total transaction count
+total quantity
+average quantity per transaction
+Also round the quantity columns to 2 decimal places.
+
+select 
+extract(year from txn_date) as txn_year,
+txn_type,
+count(*) as transaction_count,
+round(cast (sum(quantity) as numeric),2) as total_qunatity,
+round(cast (avg(quantity) as numeric),2) as average_quantity
+FROM trading.transaction
+where ticker='BTC'
+group by extract(year from txn_date),txn_type
+order by txn_year,txn_type;
+
+Question 4
+What was the monthly total quantity purchased and sold for Ethereum in 2020?
+select date_trunc('month',txn_date)::date as calendar_month,
+sum(case when txn_type='BUY' then quantity else 0 end) 
+as buy_quantity,
+sum(case when txn_type='SELL' then quantity else 0 end) 
+as sell_quantity
+FROM trading.transaction
+where ticker='ETH'and txn_date between '2020-01-01'
+and '2020-12-31'
+group by calendar_month
+order by calendar_month;
+
+
+Question 5
+Summarise all buy and sell transactions for each member_id by generating 1 row for each member with the following additional columns:
+
+Bitcoin buy quantity
+Bitcoin sell quantity
+Ethereum buy quantity
+Ethereum sell quantity
+
+
+select member_id,
+sum(case when txn_type='BUY' and ticker='BTC'
+	then quantity else 0 end) 
+as btc_buy_quantity,
+sum(case when txn_type='SELL'  and ticker='BTC'
+	then quantity else 0 end) 
+as btc_sell_quantity,
+sum(case when txn_type='SELL'  and ticker='ETH'
+	then quantity else 0 end) 
+as eth_sell_quantity,
+sum(case when txn_type='BUY'  and ticker='ETH'
+	then quantity else 0 end) 
+as eth_buy_quantity
+FROM trading.transaction
+group by member_id;
 
 
 
