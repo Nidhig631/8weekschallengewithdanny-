@@ -272,14 +272,100 @@ as eth_buy_quantity
 FROM trading.transaction
 group by member_id;
 
+Question 6
+What was the final quantity holding of Bitcoin for each member? Sort the output from the highest BTC holding to lowest
+select member_id, 
+sum(
+	case 
+	when txn_type='BUY' then quantity
+	when txn_type='BUY' then -quantity
+	else 0
+  end	
+) as final_btc_holding from trading.transaction
+where ticker='BTC'
+group by member_id order by 
+final_btc_holding desc;
 
 
+Question 7
+Which members have sold less than 500 Bitcoin? Sort the output from the most BTC sold to least
+select member_id, 
+sum(quantity) as final_btc_holding from trading.transaction
+where ticker='BTC' and txn_type='SELL'
+group by member_id 
+having sum(quantity)< 500 
+order by final_btc_holding desc;
 
 
+Question 8
+What is the total Bitcoin quantity for each member_id owns after adding all of the BUY and SELL transactions from the transactions table? Sort the output by descending total quantity
+select member_id, 
+sum(
+	case 
+	when txn_type='BUY' then quantity
+	when txn_type='BUY' then -quantity
+	else 0
+  end	
+) as total_quantity from trading.transaction
+where ticker='BTC'
+group by member_id order by 
+total_quantity desc;
 
+Question 9
+Which member_id has the highest buy to sell ratio by quantity?
+select member_id,
+sum(case when txn_type='BUY' then quantity else 0 end)/
+sum(case when txn_type='SELL' then quantity else 0 end)
+as buy_to_sell_ration from trading.transaction
+group by member_id
+order by buy_to_sell_ration desc; 
 
+Question 10
+For each member_id - which month had the highest total Ethereum quantity sold`?
 
+with cte as(
+select member_id,sum(quantity) as sold_eth_quantity,
+date_trunc('month',txn_date)::date
+as calendar_month,
+dense_rank()over(partition by member_id 
+				 order by sum(quantity) desc) 
+	as ranking
+from trading.transaction
+where ticker='ETH' and txn_type='SELL'
+group by member_id,
+date_trunc('month',txn_date)::date
+order by calendar_month)
+select member_id, calendar_month, sold_eth_quantity from cte where ranking=1;
 
+Let the Data Analysis Begin!
+============================
+
+Question 1
+What is the earliest and latest date of transactions for all members?
+select min(txn_time)::date as earliest_date, 
+max(txn_time)::date as latest_date
+from trading.transaction;
+
+Question 2
+What is the range of market_date values available in the prices data?
+select min(market_date)as earliest_date,
+max(market_date) as latest_date 
+from trading.prices;
+
+Question 3
+Which top 3 mentors have the most Bitcoin quantity as of the 29th of August?
+select m.first_name, 
+sum(
+case when t.txn_type='BUY' then t.quantity
+when t.txn_type='SELL' then -t.quantity
+end ) 
+as total_quantity
+from trading.members m , 
+trading.transaction t
+where m.member_id=t.member_id and
+t.ticker='BTC'
+group by m.first_name
+order by total_quantity desc limit 3;
 
 
 
