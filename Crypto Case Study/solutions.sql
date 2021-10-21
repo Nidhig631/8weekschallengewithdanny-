@@ -368,6 +368,150 @@ group by m.first_name
 order by total_quantity desc limit 3;
 
 
+Question 4
+What is total value of all Ethereum portfolios for each region at the end date of our analysis? Order the output by descending portfolio value
+select m.region,
+  SUM(
+    CASE
+      WHEN t.txn_type = 'BUY'  THEN t.quantity
+      WHEN t.txn_type = 'SELL' THEN -t.quantity
+    END
+  )  AS sum_ethereum_value,
+   AVG(
+    CASE
+      WHEN t.txn_type = 'BUY'  THEN t.quantity
+      WHEN t.txn_type = 'SELL' THEN -t.quantity
+    END
+  ) AS avg_ethereum_value
+from trading.members m,trading.prices p,
+trading.transaction t 
+where m.member_id=t.member_id
+and p.ticker=t.ticker
+and t.txn_type='ETH' and p.market_date='2021-08-29'
+group by m.region;
+
+Question 5
+What is the average value of each Ethereum portfolio in each region? Sort this output in descending order
+with cte as (
+select ticker , price from trading.prices where
+ticker='ETH' and market_date='2021-08-29'
+)
+select m.region,AVG(
+    CASE
+      WHEN t.txn_type = 'BUY'  THEN t.quantity
+      WHEN t.txn_type = 'SELL' THEN -t.quantity
+    END
+  )* p.price AS avg_ethereum_value
+from trading.members m,trading.prices p,
+trading.transaction t, cte c 
+where m.member_id=t.member_id
+and p.ticker=t.ticker and c.price=p.price
+group by m.region,p.price 
+order by avg_ethereum_value desc;
+
+
+Planning Ahead for Data Analysis
+=================================
+Step 1
+Create a base table that has each mentors name, region and end of year total quantity for each ticker
+
+CREATE TEMP TABLE  TEMP_DATA_P AS
+WITH CTE AS(
+SELECT M.FIRST_NAME,M.REGION,T.TXN_DATE,T.TICKER,
+CASE 
+WHEN T.TXN_TYPE='SELL' THEN -T.QUANTITY ELSE T.QUANTITY 
+END AS QUANTITY FROM TRADING.MEMBERS M inner join
+TRADING.TRANSACTION T on M.MEMBER_ID=T.MEMBER_ID 
+inner join TRADING.PRICES P on  P.TICKER=T.TICKER
+WHERE T.TXN_DATE<='2020-12-31'
+)
+SELECT FIRST_NAME, REGION, 
+(DATE_TRUNC('YEAR',TXN_DATE) + INTERVAL '12MONTHS' - INTERVAL '1DAY')::DATE AS
+YEAR_END,TICKER,
+SUM(QUANTITY) AS YEARLY_QUANTITY
+FROM CTE 
+GROUP BY FIRST_NAME, REGION, YEAR_END,TICKER;
+
+Step 2
+Lets take a look at our base table now to see what data we have to play with - to keep things simple, let's take a look at Abe's data from our new temp table temp_portfolio_base
+
+Inspect the year_end, ticker and yearly_quantity values from our new temp table temp_portfolio_base for Mentor Abe only. Sort the output with ordered BTC values followed by ETH values
+
+select year_end, ticker, yearly_quantity from  
+TEMP_DATA_P where first_name='Abe'
+order by ticker;
+
+Step 3
+Create a cumulative sum for Abe which has an independent value for each ticker
+select year_end, ticker, yearly_quantity,
+sum(yearly_quantity)over(order by year_end) as
+running_total  from 
+TEMP_DATA_P where first_name='Abe'
+order by ticker;
+
+Step 4
+Generate an additional cumulative_quantity column for the temp_portfolio_base temp table
+select year_end, ticker, yearly_quantity,
+sum(yearly_quantity)over(order by year_end) as
+running_total  from 
+TEMP_DATA_P where first_name='Abe'
+order by ticker;
+
+alter table TEMP_DATA_P
+add column cumu_quant numeric;
+
+update TEMP_DATA_P 
+set cumu_quant =
+(select sum(yearly_quantity)over(order by year_end));
+
+
+CREATE TEMP TABLE temp_cumulative_portfolio_base AS
+SELECT
+  first_name,
+  region,
+  year_end,
+  ticker,
+  yearly_quantity,
+  SUM(yearly_quantity) OVER (
+    ORDER BY year_end
+  ) AS cum_quant
+FROM TEMP_DATA_P;
+
+
+
+
+https://www.percona.com/blog/2020/04/16/sql-optimizations-in-postgresql-in-vs-exists-vs-any-all-vs-join/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
