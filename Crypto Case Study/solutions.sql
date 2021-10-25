@@ -480,7 +480,7 @@ FROM TEMP_DATA_P;
 
 
 
-https://www.percona.com/blog/2020/04/16/sql-optimizations-in-postgresql-in-vs-exists-vs-any-all-vs-join/
+
 
 
 
